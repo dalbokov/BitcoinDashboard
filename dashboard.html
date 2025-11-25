@@ -753,8 +753,8 @@
             }
 
             async fetchDashboardData() {
-                await new Promise(resolve => setTimeout(resolve, 500));
-                return DASHBOARD_MOCK;
+                return fetch('/api/dashboard').then(r => r.json()); // ✅ This calls real API
+
             }
 
             async loadData() {
