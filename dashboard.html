@@ -283,7 +283,7 @@
             animation: shimmer 2s infinite;
         }
 
-        /* Progress bar colors - FIXED: Added missing classes */
+        /* Progress bar colors */
         .cyan { background: linear-gradient(90deg, #06b6d4, #22d3ee); }
         .emerald { background: linear-gradient(90deg, #10b981, #34d399); }
         .teal { background: linear-gradient(90deg, #14b8a6, #2dd4bf); }
@@ -309,7 +309,7 @@
         }
 
         /* ==========================================
-           TREND INDICATORS - FIXED: Added missing styles */
+           TREND INDICATORS */
         .trend-indicator {
             font-size: 14px;
             font-weight: 600;
@@ -319,7 +319,7 @@
         .trend-bearish { color: var(--text-bearish); }
 
         /* ==========================================
-           BADGE COLORS - FIXED: Added missing styles */
+           BADGE COLORS */
         .badge-bullish {
             background: var(--badge-bullish-bg);
             border-color: var(--badge-bullish-border);
@@ -827,7 +827,7 @@
                 }
             }
 
-            // FIXED: Complete renderData function
+            // FIXED: Complete renderData function with proper fallbacks
             renderData(data) {
                 console.log('🎨 Rendering data:', data);
                 
@@ -863,22 +863,25 @@
                 this.updateText('sma-200', `$${(data.indicators?.mas?.sma200 || 0).toLocaleString()}`);
                 this.renderTrend('mas', data.indicators?.mas || { trend: 'neutral', signal: 'NEUTRAL' });
                 
-                // Row 2: Fear & Greed - FIXED: Added missing signal update
-                this.updateText('fear-greed-value', data.indicators?.fearGreed?.value || 50);
-                this.updateText('fear-greed-label', data.indicators?.fearGreed?.label || 'Neutral');
-                this.updateText('fear-greed-trend', `↘ ${data.indicators?.fearGreed?.direction || 'Stable'}`);
-                this.updateBadge('fear-greed-badge', data.indicators?.fearGreed?.signal || 'NEUTRAL');
-                this.updateText('fear-greed-signal', data.indicators?.fearGreed?.signal || 'NEUTRAL'); // FIX: This was missing!
+                // Row 2: Fear & Greed - FIXED: Added proper fallback
+                const fearGreed = data.indicators?.fearGreed || {};
+                this.updateText('fear-greed-value', fearGreed.value || 50);
+                this.updateText('fear-greed-label', fearGreed.label || 'Neutral');
+                this.updateText('fear-greed-trend', `↘ ${fearGreed.direction || 'Stable'}`);
+                this.updateBadge('fear-greed-badge', fearGreed.signal || 'NEUTRAL');
+                this.updateText('fear-greed-signal', fearGreed.interpretation || fearGreed.signal || 'Market sentiment is neutral');
                 
-                // Row 3: Open Interest
-                this.updateText('oi-total', `$${(data.indicators?.oi?.total || 0).toFixed(1)}B`);
-                this.updateText('oi-change', `${(data.indicators?.oi?.change || 0) >= 0 ? '+' : ''}${(data.indicators?.oi?.change || 0)}%`);
-                this.renderTrend('oi', data.indicators?.oi || { trend: 'neutral', signal: 'NEUTRAL' });
+                // Row 3: Open Interest - FIXED: Added proper fallback
+                const oi = data.indicators?.oi || { trend: 'neutral', signal: 'NEUTRAL' };
+                this.updateText('oi-total', `$${(oi.total || 0).toFixed(1)}B`);
+                this.updateText('oi-change', `${(oi.change || 0) >= 0 ? '+' : ''}${(oi.change || 0)}%`);
+                this.renderTrend('oi', oi);
                 
-                // Row 3: Funding Rate
-                this.updateText('funding-binance', `+${(data.indicators?.funding?.binance || 0).toFixed(3)}%`);
-                this.updateText('funding-bybit', `+${(data.indicators?.funding?.bybit || 0).toFixed(3)}%`);
-                this.renderTrend('funding', data.indicators?.funding || { trend: 'neutral', signal: 'NEUTRAL' });
+                // Row 3: Funding Rate - FIXED: Added proper fallback
+                const funding = data.indicators?.funding || { trend: 'neutral', signal: 'NEUTRAL' };
+                this.updateText('funding-binance', `${(funding.binance || 0) >= 0 ? '+' : ''}${(funding.binance || 0).toFixed(3)}%`);
+                this.updateText('funding-bybit', `${(funding.bybit || 0) >= 0 ? '+' : ''}${(funding.bybit || 0).toFixed(3)}%`);
+                this.renderTrend('funding', funding);
                 
                 this.updateOverallSentiment(data);
                 this.hideSkeletons();
@@ -901,6 +904,7 @@
                 this.renderTrend(id, safeData);
             }
 
+            // FIXED: renderTrend now handles missing properties safely
             renderTrend(id, data) {
                 const trendEl = document.getElementById(`${id}-trend`);
                 const badgeEl = document.getElementById(`${id}-badge`);
@@ -910,15 +914,17 @@
                     return;
                 }
                 
-                const isBullish = data?.trend === 'bullish';
-                const isBearish = data?.trend === 'bearish';
+                // Safely get values with fallbacks
+                const trend = data?.trend || 'neutral';
+                const signal = data?.signal || 'NEUTRAL';
                 
-                // Update trend text and color
+                const isBullish = trend === 'bullish';
+                const isBearish = trend === 'bearish';
+                
                 trendEl.textContent = isBullish ? '↗ Bullish' : isBearish ? '↘ Bearish' : '→ Neutral';
                 trendEl.className = `trend-indicator ${isBullish ? 'trend-bullish' : isBearish ? 'trend-bearish' : ''}`;
                 
-                // Update badge text and color
-                badgeEl.textContent = data?.signal || 'NEUTRAL';
+                badgeEl.textContent = signal;
                 badgeEl.className = isBullish ? 'badge badge-bullish' : isBearish ? 'badge badge-bearish' : 'badge';
             }
 
