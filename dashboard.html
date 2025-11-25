@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitcoin Dashboard</title>
+    
+    <style>
+        /* ==========================================
+           ENHANCED CSS VARIABLES - Spacing & Animation
+        ========================================== */
+        :root {
+            /* Colors */
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: rgba(15, 23, 42, 0.95);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --border-hover: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+            --text-neutral: #eab308;
+            --text-bullish: #10b981;
+            --text-bearish: #ef4444;
+            --badge-bullish-bg: rgba(16, 185, 129, 0.2);
+            --badge-bullish-border: rgba(16, 185, 129, 0.5);
+            --badge-bearish-bg: rgba(239, 68, 68, 0.2);
+            --badge-bearish-border: rgba(239, 68, 68, 0.5);
+            
+            /* Spacing (now consistent) */
+            --spacing-xs: 12px;
+            --spacing-sm: 16px;
+            --spacing-md: 24px;
+            --spacing-lg: 32px;
+            --spacing-xl: 40px;
+            
+            /* Shadows */
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.15);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.2);
+            --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.4);
+            
+            /* Borders */
+            --radius-sm: 12px;
+            --radius-md: 16px;
+            --radius-lg: 20px;
+            
+            /* Animations */
+            --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-medium: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            
+            /* Gradients */
+            --gradient-primary: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0f172a 100%);
+            --gradient-skeleton: linear-gradient(90deg, #1e293b 0%, #334155 50%, #1e293b 100%);
+            --gradient-glow: linear-gradient(135deg, #60a5fa, #22d3ee, #10b981);
+        }
+
+        /* ==========================================
+           BASE STYLES
+        ========================================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+            background: var(--gradient-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: var(--spacing-lg);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* ==========================================
+           LAYOUT - Consistent Spacing
+        ========================================== */
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        .grid {
+            display: grid;
+            gap: var(--spacing-md); /* Consistent gap between cards */
+        }
+
+        .grid-3 {
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        }
+
+        .grid-2 {
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        }
+
+        /* Section spacing - this ensures even vertical rhythm */
+        .section {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .section:last-child {
+            margin-bottom: 0;
+        }
+
+        .flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .flex-wrap {
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+        }
+
+        .flex-gap {
+            gap: var(--spacing-sm);
+        }
+
+        /* ==========================================
+           CARD - Enhanced Hover Effects
+        ========================================== */
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(10px);
+            box-shadow: var(--shadow-md);
+            transition: transform var(--transition-fast), 
+                        box-shadow var(--transition-fast),
+                        border-color var(--transition-fast);
+            will-change: transform; /* Performance optimization */
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Subtle gradient overlay on hover */
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-glow);
+            opacity: 0;
+            transition: opacity var(--transition-fast);
+        }
+
+        .card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-hover);
+            border-color: var(--border-hover);
+        }
+
+        .card:hover::before {
+            opacity: 0.6;
+        }
+
+        /* Category-specific border colors are now more subtle */
+        .category-momentum { border-top: 3px solid rgba(6, 182, 212, 0.6); }
+        .category-volume { border-top: 3px solid rgba(20, 184, 166, 0.6); }
+        .category-trend { border-top: 3px solid rgba(168, 85, 247, 0.6); }
+        .category-sentiment { border-top: 3px solid rgba(245, 158, 11, 0.6); }
+        .category-market { border-top: 3px solid rgba(99, 102, 241, 0.6); }
+
+        .sub-card {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-sm);
+            padding: var(--spacing-sm);
+            border: 1px solid var(--border-color);
+            transition: background-color var(--transition-fast);
+        }
+
+        .card:hover .sub-card {
+            background: rgba(30, 41, 59, 0.7);
+        }
+
+        /* ==========================================
+           TYPOGRAPHY - Monospace for numbers
+        ========================================== */
+        h1 {
+            font-size: clamp(32px, 5vw, 48px);
+            font-weight: 800;
+            background: linear-gradient(to right, #60a5fa, #22d3ee);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        h2 {
+            font-size: clamp(24px, 3vw, 28px);
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: var(--spacing-lg);
+            letter-spacing: 0.5px;
+        }
+
+        .label {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: var(--spacing-xs);
+            font-weight: 500;
+        }
+
+        /* Use monospace for numbers - better readability */
+        .value-lg, .value-md, .card p[id$="-value"], 
+        .card p[id$="-total"], .card p[id$="-change"],
+        #price, #change-24h, #sma-50, #sma-200,
+        #funding-binance, #funding-bybit {
+            font-family: 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', monospace;
+            font-variant-numeric: tabular-nums; /* Aligns numbers */
+        }
+
+        .value-lg {
+            font-size: clamp(28px, 4vw, 36px);
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .value-md {
+            font-size: clamp(20px, 3vw, 24px);
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all var(--transition-fast);
+        }
+
+        .badge:hover {
+            transform: scale(1.05);
+        }
+
+        /* ==========================================
+           PROGRESS BARS - Smooth Animations
+        ========================================== */
+        .progress-bar {
+            height: 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 12px 0;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            transition: width var(--transition-medium);
+            position: relative;
+        }
+
+        /* Glossy effect on progress bars */
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        /* ==========================================
+           SENTIMENT BAR
+        ========================================== */
+        .sentiment-bar {
+            height: 16px;
+            background: var(--bg-secondary);
+            border-radius: 9999px;
+            overflow: hidden;
+            margin-top: var(--spacing-md);
+            position: relative;
+        }
+
+        .sentiment-fill {
+            height: 100%;
+            transition: width var(--transition-medium);
+        }
+
+        /* ==========================================
+           ICONS - Hover Effects
+        ========================================== */
+        .icon-wrapper {
+            padding: 12px;
+            border-radius: var(--radius-sm);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform var(--transition-fast), filter var(--transition-fast);
+        }
+
+        .card:hover .icon-wrapper {
+            transform: scale(1.1);
+            filter: brightness(1.2);
+        }
+
+        .icon {
+            font-size: 20px;
+            line-height: 1;
+        }
+
+        /* ==========================================
+           LIVE INDICATOR - Pulsing Dot
+        ========================================== */
+        .live-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: var(--text-bullish);
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        /* ==========================================
+           BANNER & DEMO MODE
+        ========================================== */
+        .banner {
+            background: rgba(234, 179, 8, 0.1);
+            border: 1px solid rgba(234, 179, 8, 0.3);
+            border-radius: var(--radius-sm);
+            padding: var(--spacing-sm);
+            color: #fcd34d;
+            font-size: 14px;
+            margin-bottom: var(--spacing-lg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all var(--transition-fast);
+        }
+
+        .banner:hover {
+            background: rgba(234, 179, 8, 0.15);
+            border-color: rgba(234, 179, 8, 0.5);
+        }
+
+        .banner button {
+            background: transparent;
+            border: none;
+            color: var(--text-neutral);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            transition: background var(--transition-fast);
+        }
+
+        .banner button:hover {
+            background: rgba(234, 179, 8, 0.2);
+        }
+
+        /* ==========================================
+           SKELETON LOADING - More Refined
+        ========================================== */
+        .skeleton {
+            background: var(--gradient-skeleton);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: var(--radius-sm);
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .skeleton-text {
+            height: 1em;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .skeleton-bar {
+            height: 8px;
+            border-radius: 4px;
+        }
+
+        /* ==========================================
+           ERROR STATE
+        ========================================== */
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: var(--radius-sm);
+            padding: var(--spacing-sm);
+            color: var(--text-bearish);
+            font-size: 14px;
+            margin-bottom: var(--spacing-lg);
+            display: none;
+            animation: slideDown var(--transition-medium);
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .error-message button {
+            background: var(--text-bearish);
+            color: white;
+            border: none;
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            margin-top: var(--spacing-sm);
+            transition: background var(--transition-fast);
+        }
+
+        .error-message button:hover {
+            background: #dc2626;
+        }
+
+        /* ==========================================
+           RESPONSIVE
+        ========================================== */
+        @media (max-width: 768px) {
+            body {
+                padding: var(--spacing-md);
+            }
+            
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ==========================================
+           FOOTER
+        ========================================== */
+        .footer {
+            text-align: center;
+            margin-top: var(--spacing-xl);
+            padding-top: var(--spacing-lg);
+            border-top: 1px solid var(--border-color);
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Error Banner -->
+        <div id="error-banner" class="error-message">
+            <strong>⚠️ Unable to load data</strong>
+            <p id="error-text"></p>
+            <button onclick="dashboard.loadData()">Retry</button>
+        </div>
+
+        <!-- Demo Banner -->
+        <div id="demo-banner" class="banner">
+            <strong>⚠️ Demo Mode:</strong> Using simulated data
+            <button onclick="dismissDemo()" aria-label="Dismiss demo banner">✕</button>
+        </div>
+
+        <main id="main">
+            <!-- Section 1: Overall Sentiment -->
+            <section class="section">
+                <div class="card">
+                    <div class="flex flex-wrap">
+                        <div class="flex flex-gap">
+                            <span style="font-size: 48px;" aria-label="Neutral sentiment">🟡</span>
+                            <div>
+                                <h2 style="margin-bottom: var(--spacing-xs);">Overall Market Sentiment</h2>
+                                <p class="label"><span id="bullish-count">3</span> out of 5 indicators bullish</p>
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <p class="value-lg" id="sentiment-percent">60%</p>
+                            <p style="font-size: 20px; font-weight: 600;" id="sentiment-label">Neutral</p>
+                        </div>
+                    </div>
+                    <div class="sentiment-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="60">
+                        <div class="sentiment-fill" id="sentiment-bar-fill" style="width: 60%; background: linear-gradient(to right, var(--text-neutral), #fbbf24);"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 2: Main Header -->
+            <section class="section">
+                <div class="card">
+                    <header>
+                        <h1 class="title">Bitcoin Dashboard</h1>
+                        <p class="subtitle">Real-time Analysis • <span id="timeframe">4H</span> Timeframe <span class="live-indicator"></span></p>
+                    </header>
+                    
+                    <div class="grid grid-3">
+                        <div class="sub-card">
+                            <p class="label">Current Price</p>
+                            <div class="skeleton skeleton-text" id="price-skeleton"></div>
+                            <p class="value-lg" id="price" aria-live="polite">$95,234</p>
+                        </div>
+                        <div class="sub-card">
+                            <p class="label">24h Change</p>
+                            <div class="skeleton skeleton-text" id="change-skeleton"></div>
+                            <p class="value-lg" id="change-24h" aria-live="polite" style="color: var(--text-bullish);">+2.34%</p>
+                        </div>
+                        <div class="sub-card">
+                            <p class="label">Last Update</p>
+                            <p class="value-md" id="last-update" aria-live="polite">--:--:--</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 3: Indicators Row 1 -->
+            <section class="section">
+                <div class="grid grid-3" id="indicators-row-1">
+                    <article class="card category-momentum" data-indicator="rsi">
+                        <div class="flex flex-gap" style="margin-bottom: 20px;">
+                            <div class="icon-wrapper icon-bullish">
+                                <span class="icon" aria-hidden="true">📊</span>
+                            </div>
+                            <h3>RSI</h3>
+                        </div>
+                        <div class="flex" style="margin-bottom: 8px;">
+                            <span class="label">Value</span>
+                            <div class="skeleton skeleton-text" style="width: 60px;"></div>
+                            <span class="value-md" id="rsi-value" aria-live="polite">65.2</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="skeleton skeleton-bar" style="width: 100%;"></div>
+                            <div class="progress-fill cyan" id="rsi-bar" style="width: 65.2%;"></div>
+                        </div>
+                        <div class="flex">
+                            <span class="trend-indicator trend-bullish" id="rsi-trend">↗ Bullish</span>
+                            <span class="badge badge-bullish" id="rsi-badge">BULLISH</span>
+                        </div>
+                    </article>
+
+                    <article class="card category-momentum" data-indicator="macd">
+                        <div class="flex flex-gap" style="margin-bottom: 20px;">
+                            <div class="icon-wrapper icon-bullish">
+                                <span class="icon" aria-hidden="true">📈</span>
+                            </div>
+                            <h3>MACD</h3>
+                        </div>
+                        <div class="flex" style="margin-bottom: 8px;">
+                            <span class="label">Histogram</span>
+                            <div class="skeleton skeleton-text" style="width: 60px;"></div>
+                            <span class="value-md" id="macd-value" aria-live="polite">1.5</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="skeleton skeleton-bar" style="width: 100%;"></div>
+                            <div class="progress-fill emerald" id="macd-bar" style="width: 50%;"></div>
+                        </div>
+                        <div class="flex">
+                            <span class="trend-indicator trend-bullish" id="macd-trend">↗ Bullish</span>
+                            <span class="badge badge-bullish" id="macd-badge">BULLISH</span>
+                        </div>
+                    </article>
+
+                    <article class="card category-volume" data-indicator="mfi">
+                        <div class="flex flex-gap" style="margin-bottom: 20px;">
+                            <div class="icon-wrapper icon-bullish">
+                                <span class="icon" aria-hidden="true">💰</span>
+                            </div>
+                            <h3>MFI</h3>
+                        </div>
+                        <div class="flex" style="margin-bottom: 8px;">
+                            <span class="label">Value</span>
+                            <div class="skeleton skeleton-text" style="width: 60px;"></div>
+                            <span class="value-md" id="mfi-value" aria-live="polite">58.3</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="skeleton skeleton-bar" style="width: 100%;"></div>
+                            <div class="progress-fill teal" id="mfi-bar" style="width: 58.3%;"></div>
+                        </div>
+                        <div class="flex">
+                            <span class="trend-indicator trend-bullish" id="mfi-trend">↗ Bullish</span>
+                            <span class="badge badge-bullish" id="mfi-badge">BULLISH</span>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <!-- Section 4: Indicators Row 2 -->
+            <section class="section">
+                <div class="grid grid-2" id="indicators-row-2">
+                    <article class="card category-trend" data-indicator="mas">
+                        <div class="flex flex-gap" style="margin-bottom: 20px;">
+                            <div class="icon-wrapper icon-bullish">
+                                <span class="icon" aria-hidden="true">📉</span>
+                            </div>
+                            <h3>Moving Averages</h3>
+                        </div>
+                        <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                            <div class="sub-card">
+                                <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 4px;">SMA 50</p>
+                                <div class="skeleton skeleton-text" style="width: 80px;"></div>
+                                <p style="font-size: 20px; font-weight: 600;" id="sma-50">$93,000</p>
+                            </div>
+                            <div class="sub-card">
+                                <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 4px;">SMA 200</p>
+                                <div class="skeleton skeleton-text" style="width: 80px;"></div>
+                                <p style="font-size: 20px; font-weight: 600;" id="sma-200">$91,500</p>
+                            </div>
+                        </div>
+                        <div class="flex">
+                            <span class="trend-indicator trend-bullish" id="mas-trend">↗ Bullish</span>
+                            <span class="badge badge-bullish" id="mas-badge">BULLISH</span>
+                        </div>
+                    </article>
+
+                    <article class="card category-sentiment" data-indicator="fear-greed">
+                        <div class="flex flex-gap" style="margin-bottom: 20px;">
+                            <div class="icon-wrapper icon-bearish">
+                                <span class="icon" aria-hidden="true">⚡</span>
+                            </div>
+                            <h3>Fear & Greed</h3>
+                        </div>
+                        <div style="text-align: center; margin-bottom: 16px;">
+                            <div class="skeleton skeleton-text" style="width: 120px; margin: 0 auto 8px; height: 64px;"></div>
+                            <p class="value-lg" id="fear-greed-value" aria-live="polite">52</p>
+                            <p style="font-size: 24px; font-weight: 600;" id="fear-greed-label">Neutral</p>
+                        </div>
+                        <div class="flex" style="margin-bottom: 12px;">
+                            <span class="trend-indicator trend-bearish" id="fear-greed-trend">↘ Trending Down</span>
+                            <span class="badge badge-bearish" id="fear-greed-badge">FALLING</span>
+                        </div>
+                        <div style="text-align: center; padding: var(--spacing-xs); background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 8px;">
+                            <p style="color: #fbbf24; font-size: 12px;" id="fear-greed-signal">⚠️ Contrarian Sell Signal</p>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <!-- Section 5: Indicators Row 3 -->
+            <section class="section">
+                <div class="grid grid-2" id="indicators-row-3">
+                    <article class="card category-market" data-indicator="oi">
+                        <div class="flex flex-gap" style="margin-bottom: 20px;">
+                            <div class="icon-wrapper icon-bullish">
+                                <span class="icon" aria-hidden="true">📊</span>
+                            </div>
+                            <h3>Open Interest</h3>
+                        </div>
+                        <div class="flex" style="margin-bottom: 12px;">
+                            <span class="label">Total</span>
+                            <div class="skeleton skeleton-text" style="width: 80px;"></div>
+                            <span class="value-md" id="oi-total" aria-live="polite">$35.0B</span>
+                        </div>
+                        <div class="flex" style="margin-bottom: 16px;">
+                            <span class="label">24h Change</span>
+                            <div class="skeleton skeleton-text" style="width: 60px;"></div>
+                            <span style="font-size: 18px; font-weight: 600; color: var(--text-bullish);" id="oi-change">+2.5%</span>
+                        </div>
+                        <div class="flex">
+                            <span class="trend-indicator trend-bullish" id="oi-trend">↗ Rising</span>
+                            <span class="badge badge-bullish" id="oi-badge">INCREASING</span>
+                        </div>
+                    </article>
+
+                    <article class="card category-market" data-indicator="funding">
+                        <div class="flex flex-gap" style="margin-bottom: 20px;">
+                            <div class="icon-wrapper icon-bearish">
+                                <span class="icon" aria-hidden="true">💱</span>
+                            </div>
+                            <h3>Funding Rate</h3>
+                        </div>
+                        <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                            <div class="sub-card">
+                                <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 4px;">Binance</p>
+                                <div class="skeleton skeleton-text" style="width: 80px;"></div>
+                                <p style="font-size: 20px; font-weight: 600; color: var(--text-bearish);" id="funding-binance">+0.010%</p>
+                            </div>
+                            <div class="sub-card">
+                                <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 4px;">Bybit</p>
+                                <div class="skeleton skeleton-text" style="width: 80px;"></div>
+                                <p style="font-size: 20px; font-weight: 600; color: var(--text-bearish);" id="funding-bybit">+0.0095%</p>
+                            </div>
+                        </div>
+                        <div class="flex">
+                            <span class="trend-indicator trend-bearish" id="funding-trend">↘ Longs Pay</span>
+                            <span class="badge badge-bearish" id="funding-badge">LONG HEAVY</span>
+                        </div>
+                    </article>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p class="label" id="update-status">Demo Mode • Updates every 10 minutes</p>
+        </footer>
+    </div>
+
+    <script>
+        // ==========================================
+        // MOCK DATA
+        // ==========================================
+        const DASHBOARD_MOCK = {
+            price: 95234,
+            change24h: 2.34,
+            indicators: {
+                rsi: { value: 65.2, trend: 'bullish', signal: 'BULLISH', progress: 65.2 },
+                macd: { value: 1.5, trend: 'bullish', signal: 'BULLISH', progress: 50 },
+                mfi: { value: 58.3, trend: 'bullish', signal: 'BULLISH', progress: 58.3 },
+                mas: { sma50: 93000, sma200: 91500, trend: 'bullish', signal: 'BULLISH' },
+                fearGreed: { value: 52, label: 'Neutral', trend: 'bearish', signal: 'FALLING', direction: 'Trending Down' },
+                oi: { total: 35.0, change: 2.5, trend: 'bullish', signal: 'INCREASING' },
+                funding: { binance: 0.010, bybit: 0.0095, trend: 'bearish', signal: 'LONG HEAVY' }
+            },
+            timeframe: '4H'
+        };
+
+        // ==========================================
+        // DASHBOARD CLASS
+        // ==========================================
+        class BitcoinDashboard {
+            constructor() {
+                this.updateInterval = 600000;
+                this.isLoading = false;
+                this.init();
+            }
+
+            init() {
+                this.updateTime();
+                this.loadData();
+                setInterval(() => this.updateTime(), 1000);
+                setInterval(() => this.loadData(), this.updateInterval);
+            }
+
+            async fetchDashboardData() {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                return DASHBOARD_MOCK;
+            }
+
+            async loadData() {
+                if (this.isLoading) return;
+                
+                this.showSkeletons();
+                this.isLoading = true;
+
+                try {
+                    const data = await this.fetchDashboardData();
+                    this.renderData(data);
+                    this.hideErrors();
+                    this.updateStatus('Live Mode • Updates every 10 minutes');
+                } catch (error) {
+                    console.error('Failed to load data:', error);
+                    this.showError('Failed to connect to data source. Please check your internet connection.');
+                    this.updateStatus('Error • Will retry in 10 minutes');
+                } finally {
+                    this.isLoading = false;
+                }
+            }
+
+            renderData(data) {
+                // Price section
+                this.updateText('price', `$${data.price.toLocaleString()}`);
+                this.updateText('change-24h', `${data.change24h >= 0 ? '+' : ''}${data.change24h}%`);
+                document.getElementById('change-24h').style.color = data.change24h >= 0 ? 'var(--text-bullish)' : 'var(--text-bearish)';
+                
+                this.renderIndicator('rsi', data.indicators.rsi);
+                this.renderIndicator('macd', data.indicators.macd);
+                this.renderIndicator('mfi', data.indicators.mfi);
+                
+                this.updateText('sma-50', `$${data.indicators.mas.sma50.toLocaleString()}`);
+                this.updateText('sma-200', `$${data.indicators.mas.sma200.toLocaleString()}`);
+                this.renderTrend('mas', data.indicators.mas);
+                
+                this.updateText('fear-greed-value', data.indicators.fearGreed.value);
+                this.updateText('fear-greed-label', data.indicators.fearGreed.label);
+                this.updateText('fear-greed-trend', `↘ ${data.indicators.fearGreed.direction}`);
+                this.updateBadge('fear-greed-badge', data.indicators.fearGreed.signal);
+                
+                this.updateText('oi-total', `$${data.indicators.oi.total.toFixed(1)}B`);
+                this.updateText('oi-change', `${data.indicators.oi.change >= 0 ? '+' : ''}${data.indicators.oi.change}%`);
+                this.renderTrend('oi', data.indicators.oi);
+                
+                this.updateText('funding-binance', `+${data.indicators.funding.binance.toFixed(3)}%`);
+                this.updateText('funding-bybit', `+${data.indicators.funding.bybit.toFixed(3)}%`);
+                this.renderTrend('funding', data.indicators.funding);
+                
+                this.updateOverallSentiment(data);
+                this.hideSkeletons();
+            }
+
+            renderIndicator(id, data) {
+                this.updateText(`${id}-value`, data.value);
+                this.updateProgressBar(`${id}-bar`, data.progress);
+                this.renderTrend(id, data);
+            }
+
+            renderTrend(id, data) {
+                const trendEl = document.getElementById(`${id}-trend`);
+                const badgeEl = document.getElementById(`${id}-badge`);
+                const isBullish = data.trend === 'bullish';
+                
+                trendEl.textContent = isBullish ? '↗ Bullish' : '↘ Bearish';
+                trendEl.className = `trend-indicator ${isBullish ? 'trend-bullish' : 'trend-bearish'}`;
+                
+                badgeEl.textContent = data.signal;
+                badgeEl.className = isBullish ? 'badge badge-bullish' : 'badge badge-bearish';
+            }
+
+            updateText(id, value) {
+                const el = document.getElementById(id);
+                if (el) el.textContent = value;
+            }
+
+            updateProgressBar(id, percentage) {
+                const bar = document.getElementById(id);
+                if (bar) bar.style.width = `${percentage}%`;
+            }
+
+            updateBadge(id, text) {
+                const badge = document.getElementById(id);
+                if (badge) badge.textContent = text;
+            }
+
+            updateOverallSentiment(data) {
+                const bullishCount = Object.values(data.indicators).filter(ind => ind.trend === 'bullish').length;
+                const percentage = Math.round((bullishCount / 5) * 100);
+                
+                this.updateText('bullish-count', bullishCount);
+                this.updateText('sentiment-percent', `${percentage}%`);
+                document.getElementById('sentiment-bar-fill').style.width = `${percentage}%`;
+                
+                const label = percentage >= 60 ? 'Bullish' : percentage <= 40 ? 'Bearish' : 'Neutral';
+                this.updateText('sentiment-label', label);
+            }
+
+            showSkeletons() {
+                document.querySelectorAll('.skeleton').forEach(el => el.style.display = 'block');
+                document.querySelectorAll('[id$="-value"], [id$="-total"], [id$="-change"], #price, #change-24h, #sma-50, #sma-200, #funding-binance, #funding-bybit').forEach(el => {
+                    if (el) el.style.display = 'none';
+                });
+            }
+
+            hideSkeletons() {
+                document.querySelectorAll('.skeleton').forEach(el => el.style.display = 'none');
+                document.querySelectorAll('[id$="-value"], [id$="-total"], [id$="-change"], #price, #change-24h, #sma-50, #sma-200, #funding-binance, #funding-bybit').forEach(el => {
+                    if (el) el.style.display = 'block';
+                });
+            }
+
+            showError(message) {
+                document.getElementById('error-text').textContent = message;
+                document.getElementById('error-banner').style.display = 'block';
+            }
+
+            hideErrors() {
+                document.getElementById('error-banner').style.display = 'none';
+            }
+
+            updateStatus(message) {
+                this.updateText('update-status', message);
+            }
+
+            updateTime() {
+                const now = new Date();
+                this.updateText('last-update', now.toLocaleTimeString('en-US', { 
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                }));
+            }
+        }
+
+        function dismissDemo() {
+            const banner = document.getElementById('demo-banner');
+            banner.style.display = 'none';
+            localStorage.setItem('demoBannerDismissed', 'true');
+        }
+
+        if (localStorage.getItem('demoBannerDismissed') === 'true') {
+            document.getElementById('demo-banner').style.display = 'none';
+        }
+
+        const dashboard = new BitcoinDashboard();
+    </script>
+</body>
+</html>
