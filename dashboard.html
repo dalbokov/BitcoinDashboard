@@ -493,16 +493,16 @@
                             <span style="font-size: 48px;" aria-label="Neutral sentiment">🟡</span>
                             <div>
                                 <h2 style="margin-bottom: var(--spacing-xs);">Overall Market Sentiment</h2>
-                                <p class="label"><span id="bullish-count">3</span> out of 5 indicators bullish</p>
+                                <p class="label"><span id="bullish-count">0</span> out of 5 indicators bullish</p>
                             </div>
                         </div>
                         <div style="text-align: right;">
-                            <p class="value-lg" id="sentiment-percent">60%</p>
-                            <p style="font-size: 20px; font-weight: 600;" id="sentiment-label">Neutral</p>
+                            <p class="value-lg" id="sentiment-percent">0%</p>
+                            <p style="font-size: 20px; font-weight: 600;" id="sentiment-label">Loading...</p>
                         </div>
                     </div>
-                    <div class="sentiment-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="60">
-                        <div class="sentiment-fill" id="sentiment-bar-fill" style="width: 60%; background: linear-gradient(to right, var(--text-neutral), #fbbf24);"></div>
+                    <div class="sentiment-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                        <div class="sentiment-fill" id="sentiment-bar-fill" style="width: 0%; background: linear-gradient(to right, var(--text-neutral), #fbbf24);"></div>
                     </div>
                 </div>
             </section>
@@ -712,7 +712,7 @@
 
         <!-- Footer -->
         <footer class="footer">
-            <p class="label" id="update-status">Loading...</p>
+            <p class="label" id="update-status">Connecting to API...</p>
         </footer>
     </div>
 
@@ -736,25 +736,30 @@
 
             async fetchDashboardData() {
                 try {
+                    console.log('🚀 Fetching data from /api/dashboard...');
                     const response = await fetch('/api/dashboard');
+                    
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`);
                     }
+                    
                     const data = await response.json();
+                    console.log('📊 API Response:', data);
                     
                     // Validate data structure
                     if (!data || typeof data !== 'object') {
                         throw new Error('Invalid data format received from API');
                     }
                     
-                    // Provide defaults for missing indicators
+                    // Ensure indicators object exists
                     if (!data.indicators) {
+                        console.warn('⚠️ API returned no indicators, using defaults');
                         data.indicators = this.getDefaultIndicators();
                     }
                     
                     return data;
                 } catch (error) {
-                    console.error('API fetch failed:', error);
+                    console.error('❌ API fetch failed:', error);
                     throw error;
                 }
             }
@@ -776,24 +781,27 @@
                 
                 this.showSkeletons();
                 this.isLoading = true;
+                this.updateStatus('🔄 Loading data...');
 
                 try {
                     const data = await this.fetchDashboardData();
-                    console.log('Dashboard data loaded:', data);
+                    console.log('✅ Data loaded successfully:', data);
+                    
                     this.renderData(data);
                     this.hideErrors();
-                    this.updateStatus('Live Mode • Updates every 10 minutes');
+                    this.hideDemoBanner(); // Hide demo banner when real data loads
+                    this.updateStatus('✅ Live Mode • Updates every 10 minutes');
                 } catch (error) {
-                    console.error('Failed to load data:', error);
-                    this.showError(`Failed to connect: ${error.message}. Please check your internet connection.`);
-                    this.updateStatus('Error • Will retry in 10 minutes');
+                    console.error('❌ Failed to load data:', error);
+                    this.showError(`Failed to connect: ${error.message}. Please check your internet connection and API key.`);
+                    this.updateStatus('❌ Error • Will retry in 10 minutes');
                 } finally {
                     this.isLoading = false;
                 }
             }
 
             renderData(data) {
-                console.log('Rendering data:', data);
+                console.log('🎨 Rendering data...');
                 
                 // Price section with validation
                 if (data.price !== undefined) {
@@ -809,7 +817,8 @@
                     this.updateText('change-24h', '0%');
                 }
                 
-                // Indicators with fallbacks
+                // Indicators with fallbacks - these will show defaults if API doesn't provide them
+                console.log('📈 Rendering indicators:', data.indicators);
                 this.renderIndicator('rsi', data.indicators?.rsi);
                 this.renderIndicator('macd', data.indicators?.macd);
                 this.renderIndicator('mfi', data.indicators?.mfi);
@@ -843,6 +852,8 @@
                     signal: data?.signal ?? 'NEUTRAL'
                 };
                 
+                console.log(`📊 Rendering ${id}:`, safeData);
+                
                 this.updateText(`${id}-value`, safeData.value);
                 this.updateProgressBar(`${id}-bar`, safeData.progress);
                 this.renderTrend(id, safeData);
@@ -852,7 +863,10 @@
                 const trendEl = document.getElementById(`${id}-trend`);
                 const badgeEl = document.getElementById(`${id}-badge`);
                 
-                if (!trendEl || !badgeEl) return;
+                if (!trendEl || !badgeEl) {
+                    console.warn(`⚠️ Elements not found for ${id}`);
+                    return;
+                }
                 
                 const isBullish = data?.trend === 'bullish';
                 const isBearish = data?.trend === 'bearish';
@@ -867,7 +881,7 @@
             updateText(id, value) {
                 const el = document.getElementById(id);
                 if (!el) {
-                    console.warn(`Element not found: ${id}`);
+                    console.warn(`❌ Element not found: ${id}`);
                     return;
                 }
                 el.textContent = value;
@@ -928,6 +942,11 @@
                 document.getElementById('error-banner').style.display = 'none';
             }
 
+            hideDemoBanner() {
+                document.getElementById('demo-banner').style.display = 'none';
+                localStorage.setItem('demoBannerDismissed', 'true');
+            }
+
             updateStatus(message) {
                 this.updateText('update-status', message);
             }
@@ -954,6 +973,9 @@
         }
 
         const dashboard = new BitcoinDashboard();
+        
+        // Initial debug log
+        console.log('Dashboard initialized. Waiting for data...');
     </script>
 </body>
 </html>
