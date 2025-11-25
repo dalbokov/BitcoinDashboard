@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/api/dashboard", "destination": "/api/dashboard.js" },
+    { "source": "/", "destination": "/dashboard.html" }
+  ]
+}
